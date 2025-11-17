@@ -1,51 +1,29 @@
-chaoswheel793
-chaos-carver
-
-Type / to search
-Code
-Issues
-Pull requests
-Actions
-Projects
-Wiki
-Security
-Insights
-Settings
-Owner avatar
-chaos-carver
-Public
-Set up GitHub Copilot
-Use GitHub's AI pair programmer to autocomplete suggestions as you code.
-
-Add collaborators to this repository
-Search for people using their GitHub username or email address.
-
-Quick setup — if you’ve done this kind of thing before
-https://github.com/chaoswheel793/chaos-carver.git
-Get started by creating a new file or uploading an existing file. We recommend every repository include a README, LICENSE, and .gitignore.
-
-…or create a new repository on the command line
-echo "# chaos-carver" >> README.md
-git init
-git add README.md
-git commit -m "first commit"
-git branch -M main
-git remote add origin https://github.com/chaoswheel793/chaos-carver.git
-git push -u origin main
-…or push an existing repository from the command line
-git remote add origin https://github.com/chaoswheel793/chaos-carver.git
-git branch -M main
-git push -u origin main
- ProTip! Use the URL for this page when adding GitHub as a remote.
-Footer
-© 2025 GitHub, Inc.
-Footer navigation
-Terms
-Privacy
-Security
-Status
-Community
-Docs
-Contact
-Manage cookies
-Do not share my personal information
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Chaos Carver</title>
+  <meta name="description" content="A 3D mobile chaos-carving game" />
+  
+  <!-- PWA essentials -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#000000" />
+  <link rel="apple-touch-icon" href="/assets/images/icon-192.png" />
+  
+  <!-- Three.js + useful modules via CDN (ESM – modern, tree-shakable) -->
+  <script type="module" src="https://cdn.jsdelivr.net/npm/three@0.168.0/build/three.module.js"></script>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/controls/OrbitControls.js"></script>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/loaders/GLTFLoader.js"></script>
+  
+  <!-- Our styles -->
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="loading">Loading Chaos Carver...</div>
+  <canvas id="gameCanvas"></canvas>
+  
+  <!-- Game entry point -->
+  <script type="module" src="src/js/main.js"></script>
+</body>
+</html>
