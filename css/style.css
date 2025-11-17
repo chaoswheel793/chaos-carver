@@ -1,17 +1,41 @@
-* { margin: 0; padding: 0; box-sizing: border-box; }
-html, body {
-  overflow: hidden;
-  touch-action: none;
-  height: 100%;
-  background: #000;
+/* Chaos Carver – Mobile-first global styles */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
+
+html,
+body {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  touch-action: pan-x pan-y pinch-zoom; /* Allows touch but prevents browser gestures */
+  background: #000000;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-tap-highlight-color: transparent; /* Removes tap highlight on mobile */
+}
+
+#gameCanvas {
+  display: block;           /* Removes bottom whitespace */
+  width: 100vw;
+  height: 100vh;
+  touch-action: none;       /* Canvas itself blocks all browser gestures */
+}
+
 #loading {
   position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  color: #fff;
-  font-family: Arial, sans-serif;
-  font-size: 24px;
+  color: #ffffff;
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-align: center;
   z-index: 100;
+  pointer-events: none;
+  text-shadow: 0 0 10px rgba(255, 51, 102, 0.8);
 }
