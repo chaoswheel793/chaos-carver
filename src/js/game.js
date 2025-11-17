@@ -1,106 +1,78 @@
+// src/js/game.js – Core Three.js game class
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.168.0/build/three.module.js';
+
 export class Game {
-  constructor() {
-    this.width = window.innerWidth;
-    this.height = window.innerHeight;
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.scene = null;
+    this.camera = null;
+    this.renderer = null;
+    this.testCube = null;
+  }
 
+  async init() {
+    // Scene
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x111111);
+    this.scene.background = new THREE.Color(0x0a0a0a);
 
-    this.camera = new VTHREE.PerspectiveCamera(60, this.width / this.height, 0.1, 1000);
-    this.camera.position.set(0, 1.5, 4);
+    // Camera (mobile-friendly FOV)
+    const aspect = window.innerWidth / window.innerHeight;
+    this.camera = new THREE.PerspectiveCamera(60, aspect, 0.1, 1000);
+    this.camera.position.set(0, 4, 10);
 
-    this.renderer = new THREE.WebGLRenderer({ antialias: true });
-    this.renderer.setSize(this.width, this.height);
-    this.renderer.setPixelRatio(window.devicePixelRatio);
-    document.body.appendChild(this.renderer.domElement);
-
-    this.raycaster = new THREE.Raycaster();
-    this.mouse = new THREE.Vector2();
-    this.isCarving = false;
-
-    this.addLights();
-    this.createStoneBlock();
-    this.setupTouchControls();
-
-    window.addEventListener('resize', () => this.onResize());
-    this.animate();
-  }
-
-  addLights() {
-    const ambient = new THREE.AmbientLight(0xffffff, 0.7);
-    this.scene.add(ambient);
-    const dir = new THREE.DirectionalLight(0xffffff, 1);
-    dir.position.set(5, 10, 7);
-    this.scene.add(dir);
-  }
-
-  createStoneBlock() {
-    const size = 2;
-    const geometry = new THREE.BoxGeometry(size, size, size);
-    const material = new THREE.MeshStandardMaterial({
-      color: 0x888888,
-      roughness: 0.8,
-      metalness: 0.1
+    // Renderer
+    this.renderer = new THREE.WebGLRenderer({
+      canvas: this.canvas,
+      antialias: true,
+      alpha: false,
     });
-    this.block = new THREE.Mesh(geometry, material);
-    this.scene.add(this.block);
+    this.renderer.setPixelRatio(window.devicePixelRatio);
+    this.renderer.setSize(window.innerWidth, window.innerHeight);
+
+    // Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    this.scene.add(ambientLight);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    dirLight.position.set(10, 20, 10);
+    this.scene.add(dirLight);
+
+    // Test cube – visual confirmation that 3D is working
+    const geometry = new THREE.BoxGeometry(2, 2, 2);
+    const material = new THREE.MeshStandardMaterial({
+      color: 0xff3366,
+      metalness: 0.3,
+      roughness: 0.4,
+    });
+    this.testCube = new THREE.Mesh(geometry, material);
+    this.scene.add(this.testCube);
+
+    // Initial resize
+    this.resize();
   }
 
-  setupTouchControls() {
-    window.addEventListener('touchstart', (e) => this.onTouchStart(e), { passive: false });
-    window.addEventListener('touchmove', (e) => this.onTouchMove(e), { passive: false });
-    window.addEventListener('touchend', () => this.onTouchEnd());
-
-    window.addEventListener('mousedown', (e) => this.onTouchStart(e));
-    window.addEventListener('mousemove', (e) => this.onTouchMove(e));
-    window.addEventListener('mouseup', () => this.onTouchEnd());
-  }
-
-  onTouchStart(event) {
-    event.preventDefault();
-    this.isCarving = true;
-    this.updateMousePosition(event);
-  }
-
-  onTouchMove(event) {
-    if (!this.isCarving) return;
-    event.preventDefault();
-    this.updateMousePosition(event);
-    this.carve();
-  }
-
-  onTouchEnd() {
-    this.isCarving = false;
-  }
-
-  updateMousePosition(event) {
-    const touch = event.touches ? event.touches[0] : event;
-    this.mouse.x = (touch.clientX / this.width) * 2 - 1;
-    this.mouse.y = -(touch.clientY / this.height) * 2 + 1;
-  }
-
-  carve() {
-    this.raycaster.setFromCamera(this.mouse, this.camera);
-    const intersects = this.raycaster.intersectObject(this.block);
-    if (intersects.length > 0) {
-      this.block.material.emissive.setHex(0xffffff);
-      setTimeout(() => {
-        if (this.block?.material) this.block.material.emissive.setHex(0x000000);
-      }, 50);
-    }
+  start() {
+    this.animate();
   }
 
   animate = () => {
     requestAnimationFrame(this.animate);
-    this.block.rotation.y += 0.005;
+
+    // Simple rotation animation
+    if (this.testCube) {
+      this.testCube.rotation.x += 0.010;
+      this.testCube.rotation.y += 0.015;
+    }
+
     this.renderer.render(this.scene, this.camera);
   };
 
-  onResize() {
-    this.width = window.innerWidth;
-    this.height = window.innerHeight;
-    this.camera.aspect = this.width / this.height;
+  resize = () => {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
-    this.renderer.setSize(this.width, this.height);
-  }
+
+    this.renderer.setSize(width, height);
+  };
 }
