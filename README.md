@@ -1,19 +1,11 @@
-# Chaos Carver
+# I Make Things
 
-A 3D mobile chaos-carving game built with pure HTML5 + CSS + JavaScript + Three.js  
-No frameworks. No build tools. Pure web, installable, mobile-first.
+A mobile-first creative workshop where you carve, sculpt, paint, and build anything — then order the real object shipped to your door.
 
-## Status
-Active development – foundational structure complete
+- Touch & AR carving with accuracy scoring
+- Virtual → real fulfillment (coming soon)
+- PWA – installable on iOS & Android
 
-## Tech Stack
-- Three.js (via CDN – ESM)
-- Vanilla JavaScript (modules)
-- Mobile-first responsive design
-- PWA-ready (manifest + service worker)
+Live at → https://imakethings.app (soon)
 
-## Quick Test
-Open the GitHub Pages URL (once enabled) or any static host.  
-You should see a black screen with “Loading Chaos Carver…” followed by a spinning pink cube.
-
-## Folder Structure
+Built with pure HTML + CSS + Three.js
