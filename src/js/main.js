@@ -1,4 +1,4 @@
-// src/js/main.js – I Make Things bootstrap with proper loading
+// src/js/main.js – Fixed bootstrap with render-based loading hide
 import { Game } from './game.js';
 
 class IMakeThings {
@@ -11,17 +11,19 @@ class IMakeThings {
   async init() {
     try {
       this.game = new Game(this.canvas);
-      await this.game.init(); // Wait for scene ready
-
-      // Hide loading after init success
-      this.loading.style.transition = 'opacity 0.5s';
-      this.loading.style.opacity = '0';
-      setTimeout(() => this.loading.style.display = 'none', 500);
+      await this.game.init();
+      
+      // Hide loading on first successful render (passed via callback)
+      this.game.onFirstRender = () => {
+        this.loading.style.transition = 'opacity 0.5s';
+        this.loading.style.opacity = '0';
+        setTimeout(() => this.loading.style.display = 'none', 500);
+      };
 
       this.game.start();
     } catch (err) {
       console.error('Init failed:', err);
-      this.loading.innerHTML = 'Error loading – check console (F12). Refresh to retry.';
+      this.loading.innerHTML = 'Error: Check console (F12). Refresh to retry.';
     }
   }
 
