@@ -1,4 +1,4 @@
-// src/js/main.js – Fixed bootstrap with render-based loading hide
+// src/js/main.js – FINAL WORKING VERSION
 import { Game } from './game.js';
 
 class IMakeThings {
@@ -12,24 +12,22 @@ class IMakeThings {
     try {
       this.game = new Game(this.canvas);
       await this.game.init();
-      
-      // Hide loading on first successful render (passed via callback)
+
+      // Hide loading as soon as first frame renders
       this.game.onFirstRender = () => {
-        this.loading.style.transition = 'opacity 0.5s';
+        this.loading.style.transition = 'opacity 0.8s';
         this.loading.style.opacity = '0';
-        setTimeout(() => this.loading.style.display = 'none', 500);
+        setTimeout(() => this.loading.style.display = 'none', 800);
       };
 
       this.game.start();
     } catch (err) {
       console.error('Init failed:', err);
-      this.loading.innerHTML = 'Error: Check console (F12). Refresh to retry.';
+      this.loading.innerHTML = 'Error – check console (F12)';
     }
   }
 
-  handleResize = () => {
-    if (this.game) this.game.resize();
-  };
+  handleResize = () => this.game?.resize();
 }
 
 const app = new IMakeThings();
