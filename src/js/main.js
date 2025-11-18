@@ -1,4 +1,4 @@
-// src/js/main.js – I Make Things entry point
+// src/js/main.js – I Make Things bootstrap
 import { Game } from './game.js';
 
 class IMakeThings {
@@ -9,13 +9,21 @@ class IMakeThings {
   }
 
   async init() {
-    this.game = new Game(this.canvas);
-    await this.game.init();
+    try {
+      this.game = new Game(this.canvas);
+      await this.game.init();
 
-    this.loading.style.opacity = '0';
-    setTimeout(() => this.loading.style.display = 'none', 600);
+      // Hide loading after 500ms (or on scene ready)
+      setTimeout(() => {
+        this.loading.style.opacity = '0';
+        setTimeout(() => this.loading.style.display = 'none', 300);
+      }, 500);
 
-    this.game.start(); // Starts the main loop
+      this.game.start();
+    } catch (err) {
+      console.error('Init failed:', err);
+      this.loading.innerHTML = 'Error loading – check console (F12)';
+    }
   }
 
   handleResize = () => {
@@ -24,7 +32,7 @@ class IMakeThings {
 }
 
 const app = new IMakeThings();
-app.init().catch(err => console.error('Init failed:', err));
+app.init();
 
 window.addEventListener('resize', app.handleResize);
 window.addEventListener('orientationchange', () => setTimeout(app.handleResize, 300));
