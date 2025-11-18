@@ -19,30 +19,26 @@ html, body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  color: #fff;
-  font-size: 1.5rem;
+  color: #ffddaa;
+  font-size: 1.8rem;
   font-weight: 600;
   text-align: center;
   z-index: 1000;
   pointer-events: none;
+  text-shadow: 0 0 20px #ff8800;
 }
 
 .spinner {
-  width: 60px;
-  height: 60px;
-  border: 6px solid rgba(255, 255, 255, 0.2);
-  border-top: 6px solid #ffddaa;
+  width: 70px;
+  height: 70px;
+  border: 8px solid rgba(255, 255, 255, 0.2);
+  border-top: 8px solid #ffddaa;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 20px auto;
+  animation: spin 1.2s linear infinite;
+  margin: 25px auto;
 }
 
 @keyframes spin {
   0%   { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
-}
-
-#loading {
-  color: #ffddaa;
-  text-shadow: 0 0 20px #ff8800;
 }
