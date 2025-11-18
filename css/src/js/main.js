@@ -1,4 +1,4 @@
-// src/js/main.js – 100% Chromebook-Proof: Hides loading ONLY when scene renders
+// src/js/main.js – FINAL: Hides loading only when first frame renders
 import { Game } from './game.js';
 
 class IMakeThings {
@@ -13,22 +13,26 @@ class IMakeThings {
       this.game = new Game(this.canvas);
       await this.game.init();
 
-      // This function is called from inside render() — GUARANTEED after first frame
+      // Called from render() when first frame is visible
       this.game.hideLoading = () => {
-        console.log('Scene rendered – hiding loading');
+        console.log('First frame rendered – hiding loading spinner');
         this.loading.style.transition = 'opacity 1s';
         this.loading.style.opacity = '0';
-        setTimeout(() => this.loading.style.display = 'none', 1000);
+        setTimeout(() => {
+          this.loading.style.display = 'none';
+        }, 1000);
       };
 
       this.game.start();
     } catch (err) {
-      console.error('Init failed:', err);
+      console.error('Game failed to load:', err);
       this.loading.innerHTML = 'Error – check console (F12)';
     }
   }
 
-  handleResize = () => this.game?.resize();
+  handleResize = () => {
+    if (this.game) this.game.resize();
+  };
 }
 
 const app = new IMakeThings();
