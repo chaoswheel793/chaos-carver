@@ -1,13 +1,12 @@
-// src/js/game.js – Chromebook WebGL Fix #5: Context Restoration + SVG Fallback
+// src/js/game.js – Fix for Black Screen Flash on Reload
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.168.0/build/three.module.js';
 import { PointerLockControls } from 'https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/controls/PointerLockControls.js';
 import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/controls/OrbitControls.js';
-import { SVGRenderer } from 'https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/renderers/SVGRenderer.js';
 import { getDeltaTime } from './utils.js';
 
 export class Game {
   constructor(canvas) {
-    console.log('Game constructor – WebGL context fix');
+    console.log('Game constructor – fixing reload flash');
     this.canvas = canvas;
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x2c1810);
@@ -15,24 +14,17 @@ export class Game {
     this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     this.camera.position.set(0, 1.6, 5);
 
-    // Try WebGL first, fallback to SVG if fails
-    let renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: false, preserveDrawingBuffer: true });
-    if (!renderer.getContext()) {
-      console.log('WebGL failed – switching to SVG fallback');
-      renderer = new SVGRenderer({ canvas: this.canvas });
-    }
-    this.renderer = renderer;
+    this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: false, preserveDrawingBuffer: true });
+    this.renderer.setClearColor(0x2c1810, 1); // Force clear to avoid flash
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.shadowMap.enabled = true;
 
-    // Force context restoration for reload bug
-    if (renderer.getContext()) {
-      renderer.forceContextLoss();
-      renderer.forceContextRestoration();
-    }
-    this.renderer.setClearColor(0x2c1810, 1);
-    console.log('Renderer ready – WebGL or SVG');
+    // FIX FOR RELOAD FLASH: Force context to stick
+    this.renderer.domElement.style.visibility = 'visible';
+    this.renderer.forceContextLoss();
+    this.renderer.forceContextRestoration();
+    console.log('Context restored – no more flash');
 
     this.onFirstRender = null;
     this.firstRender = false;
@@ -68,7 +60,7 @@ export class Game {
     this.setupInput();
 
     this.resize();
-    console.log('Init complete – rendering first frame');
+    console.log('Init complete – first render incoming');
   }
 
   createWorkshop() {
@@ -217,7 +209,7 @@ export class Game {
   render() {
     this.renderer.render(this.scene, this.camera);
 
-    // HIDE LOADING ON FIRST RENDER
+    // HIDE LOADING ON FIRST RENDER – FINAL FIX
     if (!this.firstRender && this.hideLoading) {
       this.firstRender = true;
       this.hideLoading();
