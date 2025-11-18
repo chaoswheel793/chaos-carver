@@ -1,41 +1,48 @@
-/* Chaos Carver – Mobile-first global styles */
-*,
-*::before,
-*::after {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-html,
-body {
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
   height: 100%;
-  width: 100%;
   overflow: hidden;
-  touch-action: pan-x pan-y pinch-zoom; /* Allows touch but prevents browser gestures */
-  background: #000000;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  -webkit-tap-highlight-color: transparent; /* Removes tap highlight on mobile */
+  touch-action: pan-x pan-y pinch-zoom;
+  background: #000;
+  font-family: system-ui, sans-serif;
 }
 
 #gameCanvas {
-  display: block;           /* Removes bottom whitespace */
+  display: block;
   width: 100vw;
   height: 100vh;
-  touch-action: none;       /* Canvas itself blocks all browser gestures */
 }
 
+/* Animated Loading Spinner */
 #loading {
   position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  color: #ffffff;
+  color: #fff;
   font-size: 1.5rem;
   font-weight: 600;
-  letter-spacing: 2px;
   text-align: center;
-  z-index: 100;
+  z-index: 1000;
   pointer-events: none;
-  text-shadow: 0 0 10px rgba(255, 51, 102, 0.8);
+}
+
+.spinner {
+  width: 60px;
+  height: 60px;
+  border: 6px solid rgba(255, 255, 255, 0.2);
+  border-top: 6px solid #ffddaa;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 20px auto;
+}
+
+@keyframes spin {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+#loading {
+  color: #ffddaa;
+  text-shadow: 0 0 20px #ff8800;
 }
