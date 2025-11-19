@@ -1,4 +1,4 @@
-// src/js/game.js – FINAL WORKING VERSION: Full 3D Workshop + Hands + No Black Screen
+// src/js/game.js – FINAL FIX: WebGL Context Loss Handler for Black Screen
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.168.0/build/three.module.js';
 import { PointerLockControls } from 'https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/controls/PointerLockControls.js';
 import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/controls/OrbitControls.js';
@@ -6,7 +6,7 @@ import { getDeltaTime } from './utils.js';
 
 export class Game {
   constructor(canvas) {
-    console.log('Game starting – full 3D mode');
+    console.log('Game constructor – adding context loss handler');
     this.canvas = canvas;
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x2c1810);
@@ -14,11 +14,23 @@ export class Game {
     this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     this.camera.position.set(0, 1.6, 5);
 
-    this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true });
+    this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: false, preserveDrawingBuffer: true });
     this.renderer.setClearColor(0x2c1810, 1);
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.shadowMap.enabled = true;
+
+    // KEY FIX: Handle WebGL context loss (silent black screen cause)
+    this.renderer.addEventListener('webglcontextlost', (event) => {
+      console.log('WebGL context lost – restoring');
+      event.preventDefault();
+      this.renderer.forceContextRestoration();
+    });
+
+    this.renderer.addEventListener('webglcontextrestored', (event) => {
+      console.log('WebGL context restored');
+      this.resize();
+    });
 
     this.onFirstRender = null;
     this.firstRender = false;
@@ -39,6 +51,7 @@ export class Game {
   }
 
   async init() {
+    console.log('Init started');
     const ambient = new THREE.AmbientLight(0xffffff, 0.6);
     this.scene.add(ambient);
     const light = new THREE.PointLight(0xffddaa, 2, 40);
@@ -53,6 +66,7 @@ export class Game {
     this.setupInput();
 
     this.resize();
+    console.log('Init complete – first render should succeed');
   }
 
   createWorkshop() {
@@ -64,7 +78,7 @@ export class Game {
     this.scene.add(ground);
 
     const bench = new THREE.Group();
-    const woodMat = new THREE.MeshStandardMaterial({ color: 0x8B4513, roughness: 0.8 });
+    const woodMat = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
     const base = new THREE.Mesh(new THREE.BoxGeometry(5, 0.8, 2.5), woodMat);
     const top = new THREE.Mesh(new THREE.BoxGeometry(6, 0.2, 3), woodMat);
     base.position.y = 0.4;
@@ -73,13 +87,10 @@ export class Game {
     this.scene.add(bench);
 
     const geo = new THREE.BoxGeometry(1, 1, 1, 32, 32, 32);
-    const mat = new THREE.MeshPhysicalMaterial({
-      color: 0xDEB887,
-      roughness: 0.6,
-      transmission: 0.9,
-      thickness: 0.5,
-      transparent: true,
-      opacity: 0.6
+    const mat = new THREE.MeshLambertMaterial({ 
+      color: 0xDEB887, 
+      transparent: true, 
+      opacity: 0.6 
     });
     this.carvingBlock = new THREE.Mesh(geo, mat);
     this.carvingBlock.position.set(0, 1.2, 0);
@@ -91,7 +102,7 @@ export class Game {
   createChisel() {
     const group = new THREE.Group();
     const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.4), new THREE.MeshLambertMaterial({ color: 0x8B4513 }));
-    const blade = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.3, 8), new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.9 }));
+    const blade = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.3, 8), new THREE.MeshLambertMaterial({ color: 0xcccccc }));
     blade.position.y = 0.35;
     group.add(handle, blade);
     group.scale.set(0.6, 0.6, 0.6);
@@ -199,7 +210,7 @@ export class Game {
   }
 
   render() {
-    // THIS IS THE MAGIC FIX — stops the 3/4 crash
+    // FIXED THE 3/4 CRASH: Clear before render
     this.renderer.setRenderTarget(null);
     this.renderer.clear();
     this.renderer.render(this.scene, this.camera);
