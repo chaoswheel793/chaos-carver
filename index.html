@@ -4,30 +4,25 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>I Make Things</title>
-  <meta name="description" content="Carve, sculpt, build — then get the real thing shipped to you." />
-  <meta name="apple-mobile-web-app-title" content="I Make Things">
-  <meta name="application-name" content="I Make Things">
+  <meta name="description" content="3D wood carving workshop – carve with your hands" />
   
-  <!-- PWA essentials -->
-  <link rel="manifest" href="/manifest.json" />
-  <meta name="theme-color" content="#000000" />
-  <link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" /> <!-- Dummy 1x1 PNG -->
-  
-  <!-- Three.js + controls -->
-  <script type="module" src="https://cdn.jsdelivr.net/npm/three@0.168.0/build/three.module.js"></script>
-  <script type="module" src="https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/controls/PointerLockControls.js"></script>
-  <script type="module" src="https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/controls/OrbitControls.js"></script>
-  <script type="module" src="https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/loaders/GLTFLoader.js"></script>
-  
+  <!-- PWA manifest -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#2c1810" />
+  <link rel="icon" href="data:,">
+
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
-  <div id="loading">
-    Loading I Make Things...
-    <div class="spinner"></div>
-  </div>
   <canvas id="gameCanvas"></canvas>
-  
+
+  <!-- Loading spinner – we keep it beautiful -->
+  <div id="loading">
+    <div class="spinner"></div>
+    <p>Loading workshop...</p>
+  </div>
+
+  <!-- THIS LINE WAS THE FINAL BLOCKER – now fixed -->
   <script type="module" src="src/js/main.js"></script>
 </body>
 </html>
