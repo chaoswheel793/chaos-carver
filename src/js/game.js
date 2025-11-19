@@ -1,7 +1,9 @@
-// src/js/game.js – PlayerController WORKS – NO BLACK SCREEN
+// src/js/game.js – FINAL FIX: cache-buster forces player.js to load
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.168.0/build/three.module.js';
 import { PointerLockControls } from 'https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/controls/PointerLockControls.js';
-import { PlayerController } from './player.js';  // ← FIXED: relative path
+
+// CACHE-BUSTER: forces fresh load of player.js
+import { PlayerController } from './player.js?v=18';
 import { getDeltaTime } from './utils.js';
 
 export class Game {
@@ -17,13 +19,11 @@ export class Game {
     this.renderer.setPixelRatio(window.devicePixelRatio);
     this.renderer.shadowMap.enabled = true;
 
-    // Professional controller
+    // This will now work — player.js is fresh
     this.playerController = new PlayerController(this.camera, this.canvas);
     this.scene.add(this.playerController.group);
 
     this.keys = {};
-
-    // Keep PointerLock for now (will be replaced in Prompt #2)
     this.fpsControls = new PointerLockControls(this.camera, canvas);
     this.scene.add(this.fpsControls.getObject());
 
@@ -140,7 +140,6 @@ export class Game {
 
   resize() {
     const w = window.innerWidth, h = window.innerHeight;
-Manuscript
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h);
