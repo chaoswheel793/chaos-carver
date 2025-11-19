@@ -9,20 +9,29 @@
   <!-- PWA manifest -->
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#2c1810" />
-  <link rel="icon" href="data:,">
+  <link rel="icon" href="data:," />
 
   <link rel="stylesheet" href="css/style.css" />
+
+  <!-- IMPORT MAP – FIXES BARE SPECIFIER ERROR -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.168.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/"
+      }
+    }
+  </script>
 </head>
 <body>
   <canvas id="gameCanvas"></canvas>
 
-  <!-- Loading spinner – we keep it beautiful -->
+  <!-- Loading spinner -->
   <div id="loading">
     <div class="spinner"></div>
     <p>Loading workshop...</p>
   </div>
 
-  <!-- THIS LINE WAS THE FINAL BLOCKER – now fixed -->
   <script type="module" src="src/js/main.js"></script>
 </body>
 </html>
