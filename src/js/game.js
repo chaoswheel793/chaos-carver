@@ -1,4 +1,4 @@
-// src/js/game.js – FINAL WORKING
+// src/js/game.js – FINAL PERFECT VERSION
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.168.0/build/three.module.js';
 import { PlayerController } from './player-controller.js';
 import { getDeltaTime } from './utils.js';
@@ -19,8 +19,8 @@ export class Game {
     this.scene.add(this.player.group);
 
     this.keys = {};
-    this.chiselVisible = false;
     this.chisel = null;
+    this.chiselVisible = false;
   }
 
   async init() {
@@ -67,18 +67,13 @@ export class Game {
   setupInput() {
     window.addEventListener('keydown', e => this.keys[e.code] = true);
     window.addEventListener('keyup', e => this.keys[e.code] = false);
-
-    this.player.domElement.addEventListener('click', () => this.player.lock());
-    this.player.unlock = () => document.exitPointerLock();
-
-    document.addEventListener('pointerlockchange', () => {
-      this.chisel.visible = this.player.isLocked;
-      this.chiselVisible = this.player.isLocked;
-    });
   }
 
   update(delta) {
     this.player.update(delta, this.keys);
+
+    this.chiselVisible = this.player.isLocked;
+    this.chisel.visible = this.chiselVisible;
 
     if (this.chiselVisible) {
       const dir = new THREE.Vector3();
