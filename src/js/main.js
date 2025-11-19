@@ -1,4 +1,4 @@
-// src/js/main.js – Spinner stays, but fades out when scene is ready
+// src/js/main.js – FINAL WORKING VERSION
 import { Game } from './game.js';
 
 const canvas = document.getElementById('gameCanvas');
@@ -6,8 +6,9 @@ const loading = document.getElementById('loading');
 
 const game = new Game(canvas);
 
+// This function will be called the moment the first frame renders
 game.hideLoading = () => {
-  console.log('First frame rendered – hiding spinner');
+  console.log('Workshop ready – hiding spinner');
   loading.style.transition = 'opacity 1s ease-out';
   loading.style.opacity = '0';
   setTimeout(() => loading.style.display = 'none', 1000);
@@ -16,10 +17,10 @@ game.hideLoading = () => {
 (async () => {
   try {
     await game.init();
-    game.start();          // Start render loop
-  } catch (err) {
-    console.error(err);
-    loading.innerHTML = 'Load failed – press F12';
+    game.start();  // Starts the render loop
+  } catch (e) {
+    console.error(e);
+    loading.textContent = 'Error – open console (F12)';
   }
 })();
 
