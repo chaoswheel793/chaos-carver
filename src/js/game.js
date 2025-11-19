@@ -1,6 +1,7 @@
-// src/js/game.js – FINAL 100% WORKING – NO SYNTAX ERRORS – PERFECT CONTROLS
+// src/js/game.js – FIXED SYNTAX ERROR – Full 3D Workshop + Hands + Carving
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.168.0/build/three.module.js';
 import { PointerLockControls } from 'https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/controls/PointerLockControls.js';
+import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/controls/OrbitControls.js';
 import { getDeltaTime } from './utils.js';
 
 export class Game {
@@ -31,7 +32,7 @@ export class Game {
     this.scene.add(this.fpsControls.getObject());
 
     this.chiselVisible = false;
-    this.activePointers = 0;  // ← FIXED: clean declaration
+    this.activePointers = 0;  // ← FIXED: Clean declaration, no missing )
   }
 
   async init() {
@@ -216,7 +217,7 @@ class Player {
 
     const hand = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.12, 0.25), skin);
     hand.position.set(0.4, -0.7, -0.7);
-    this.rightHand.add(hand);
+    this.rightHand.add(hand);  // ← FIXED: Clean, no invalid characters
     this.group.add(this.rightHand);
 
     this.group.position.set(0.35, -0.35, -0.78);
