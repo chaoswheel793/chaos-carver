@@ -1,4 +1,4 @@
-// src/js/game.js – GRID FLOOR + JUMP + TOUCHPAD – MOVEMENT IS NOW OBVIOUS
+// src/js/game.js – FINAL: WASD + JUMP + TWO-FINGER + DOUBLE-TAP RELEASE
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.168.0/build/three.module.js';
 import { PointerLockControls } from 'https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/controls/PointerLockControls.js';
 import { PlayerController } from './player-controller.js';
@@ -27,9 +27,10 @@ export class Game {
     this.chiselVisible = false;
     this.chisel = null;
 
-    this.twoFingerDeltaY = 0;
-    this.isOneFingerDown = false;
-    this.turnDeltaX = 0;
+    // Touchpad state
+    this.twoFingerActive = false;
+    this.twoFingerStartY = 0;
+    this.lastTapTime = 0;
   }
 
   async init() {
@@ -39,7 +40,7 @@ export class Game {
     sun.castShadow = true;
     this.scene.add(sun);
 
-    this.createGridFloor();   // ← NEW: visible grid!
+    this.createVisibleFloor();
     this.createWorkshop();
     this.createChisel();
     this.setupInput();
@@ -48,22 +49,39 @@ export class Game {
     this.hideLoading?.();
   }
 
-  // NEW: CLEAR GRID FLOOR SO YOU CAN SEE MOVEMENT
-  createGridFloor() {
-    const size = 100;
-    const divisions = 100;
-    const gridHelper = new THREE.GridHelper(size, divisions, 0x888888, 0x444444);
-    gridHelper.position.y = 0.01; // slightly above to avoid z-fighting
-    this.scene.add(gridHelper);
+  createVisibleFloor() {
+    const grid = new THREE.GridHelper(100, 100, 0xffffff, 0x555555);
+    grid.position.y = 0.01;
+    this.scene.add(grid);
 
-    // Optional: faint ground plane for shadows
+    const texture = new THREE.CanvasTexture(this.generateGroundTexture());
+    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(50, 50);
+
     const ground = new THREE.Mesh(
-      new THREE.PlaneGeometry(size * 2, size * 2),
-      new THREE.MeshStandardMaterial({ color: 0x1a1a1a, transparent: true, opacity: 0.3 })
+      new THREE.PlaneGeometry(200, 200),
+      new THREE.MeshStandardMaterial({ map: texture, roughness: 0.9 })
     );
     ground.rotation.x = -Math.PI / 2;
     ground.receiveShadow = true;
     this.scene.add(ground);
+  }
+
+  generateGroundTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#111111';
+    ctx.fillRect(0, 0, 128, 128);
+    ctx.strokeStyle = '#00ff99';
+    ctx.lineWidth = 4;
+    for (let i = 0; i < 128; i += 32) {
+      ctx.beginPath();
+      ctx.moveTo(i, 0); ctx.lineTo(i, 128);
+      ctx.moveTo(0, i); ctx.lineTo(128, i);
+      ctx.stroke();
+    }
+    return canvas;
   }
 
   createWorkshop() {
@@ -74,13 +92,13 @@ export class Game {
     base.position.y = 0.4; top.position.y = 1;
     base.castShadow = top.castShadow = true;
     bench.add(base, top);
-    bench.position.z = -3;
+    bench.position.z = -4;
     this.scene.add(bench);
 
     const geo = new THREE.BoxGeometry(1, 1, 1, 48, 48, 48);
     const mat = new THREE.MeshStandardMaterial({ color: 0xDEB887, transparent: true, opacity: 0.6, roughness: 0.8 });
     const block = new THREE.Mesh(geo, mat);
-    block.position.set(0, 1.2, -3);
+    block.position.set(0, 1.2, -4);
     block.castShadow = true;
     bench.add(block);
     this.carvingBlock = block;
@@ -100,9 +118,32 @@ export class Game {
 
   setupInput() {
     this.canvas.addEventListener('contextmenu', e => e.preventDefault());
-    window.addEventListener('keydown', e => { this.keys[e.code] = true; });
-    window.addEventListener('keyup', e => { this.keys[e.code] = false; });
+
+    // Keyboard
+    window.addEventListener('keydown', e => {
+      this.keys[e.code] = true;
+      if (e.code === 'Escape') this.fpsControls.unlock();
+    });
+    window.addEventListener('keyup', e => this.keys[e.code] = false);
+
+    // Click to lock
     this.canvas.addEventListener('click', () => this.fpsControls.lock());
+
+    // Double-click or double-tap to unlock
+    this.canvas.addEventListener('dblclick', () => this.fpsControls.unlock());
+    let tapCount = 0;
+    this.canvas.addEventListener('touchstart', e => {
+      if (e.touches.length === 1) {
+        const now = Date.now();
+        if (now - this.lastTapTime < 300) {
+          this.fpsControls.unlock();
+          tapCount = 0;
+        } else {
+          tapCount = 1;
+          this.lastTapTime = now;
+        }
+      }
+    });
 
     this.fpsControls.addEventListener('lock', () => {
       if (!this.chiselVisible) {
@@ -111,55 +152,40 @@ export class Game {
       }
     });
 
-    // Touchpad controls (same as before)
-    let touchCount = 0;
-    let lastTouchY = 0;
-    let lastSingleTouchX = 0;
-
+    // Two-finger swipe = forward/back
     this.canvas.addEventListener('touchstart', e => {
-      touchCount = e.touches.length;
-      if (touchCount === 1) {
-        this.isOneFingerDown = true;
-        lastSingleTouchX = e.touches[0].clientX;
+      if (e.touches.length === 2) {
+        this.twoFingerActive = true;
+        this.twoFingerStartY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
       }
-      if (touchCount === 2) lastTouchY = e.touches[0].clientY + e.touches[1].clientY;
     });
 
     this.canvas.addEventListener('touchmove', e => {
       e.preventDefault();
-      if (touchCount === 2) {
-        const currentY = e.touches[0].clientY + e.touches[1].clientY;
-        this.twoFingerDeltaY = (lastTouchY - currentY) * 0.08;
-        lastTouchY = currentY;
-      }
-      if (touchCount === 2 && this.isOneFingerDown) {
-        const currentX = e.touches[0].clientX;
-        this.turnDeltaX = (lastSingleTouchX - currentX) * 0.004;
-        lastSingleTouchX = currentX;
+      if (this.twoFingerActive && e.touches.length === 2) {
+        const currentY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        const deltaY = this.twoFingerStartY - currentY;
+        this.keys['KeyW'] = deltaY > 2;
+        this.keys['KeyS'] = deltaY < -2;
+        this.twoFingerStartY = currentY;
       }
     });
 
     this.canvas.addEventListener('touchend', () => {
-      touchCount = 0;
-      this.twoFingerDeltaY = 0;
-      this.turnDeltaX = 0;
-      this.isOneFingerDown = false;
+      this.twoFingerActive = false;
+      this.keys['KeyW'] = this.keys['KeyS'] = false;
     });
 
+    // Mouse wheel = forward/back
     this.canvas.addEventListener('wheel', e => {
-      this.twoFingerDeltaY = e.deltaY * 0.05;
+      this.keys['KeyW'] = e.deltaY < 0;
+      this.keys['KeyS'] = e.deltaY > 0;
+      setTimeout(() => { this.keys['KeyW'] = this.keys['KeyS'] = false; }, 100);
     });
   }
 
   update(delta) {
-    if (this.twoFingerDeltaY > 5) this.keys['KeyW'] = true, this.keys['KeyS'] = false;
-    else if (this.twoFingerDeltaY < -5) this.keys['KeyS'] = true, this.keys['KeyW'] = false;
-    else this.keys['KeyW'] = this.keys['KeyW'] || false, this.keys['KeyS'] = this.keys['KeyS'] || false;
-
-    if (Math.abs(this.turnDeltaX) > 0.01) {
-      this.playerController.yaw -= this.turnDeltaX;
-    }
-
+    // PASS KEYS TO PLAYER CONTROLLER — THIS WAS THE FINAL MISSING PIECE
     this.playerController.update(delta, this.keys);
 
     if (this.chisel?.visible) {
