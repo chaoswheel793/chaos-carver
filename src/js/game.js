@@ -1,4 +1,5 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.166.1/build/three.module.js';
+import { PointerLockControls } from 'https://cdn.jsdelivr.net/npm/three@0.166.1/examples/jsm/controls/PointerLockControls.js';
 
 import { Player } from './Player.js';
 import { createChisel } from './Tools.js';
@@ -7,37 +8,31 @@ export class Game {
   constructor() {
     this.scene    = new THREE.Scene();
     this.camera   = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    this.renderer = new THREE.WebGLRenderer({
-      canvas: document.getElementById('canvas'),
-      antialias: true,
-      powerPreference: "high-performance"
-    });
+    this.renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas'), antialias: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
     this.clock = new THREE.Clock();
     this.keys = {};
     this.interactables = [];
-    this.isPointerLocked = false;
 
-    // Custom FPS setup
-    this.euler = new THREE.Euler(0, 0, 0, 'YXZ');
-    this.pitchObject = new THREE.Object3D();
-    this.yawObject = new THREE.Object3D();
-    this.yawObject.add(this.pitchObject);
-    this.pitchObject.add(this.camera);
+    // Player root group
+    this.playerRoot = new THREE.Group();
+    this.scene.add(this.playerRoot);
+    this.playerRoot.position.y = 1.6; // eye height
 
-    this.player = new Player(this.pitchObject, this.scene); // Pass pitchObject as root for look
-    this.scene.add(this.yawObject);
+    // Controls
+    this.controls = new PointerLockControls(this.camera, document.body);
+    this.playerRoot.add(this.controls.getObject()); // ← THIS WAS THE FIX
 
-    this.setupWorld();
+    this.player = new Player(this.camera, this.scene, this.playerRoot);
     this.chisel = createChisel(this.scene);
     this.interactables.push(this.chisel);
 
-    this.setupCustomControls();
+    this.setupWorld();
     this.setupInput();
+    this.setupMobileTouch();
     this.fadeOutLoading();
 
     window.addEventListener('resize', () => this.onResize());
@@ -45,10 +40,8 @@ export class Game {
 
   setupWorld() {
     this.scene.background = new THREE.Color(0x2a2a2a);
-
     const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 1.8);
     this.scene.add(hemi);
-
     const dir = new THREE.DirectionalLight(0xffffff, 1.4);
     dir.position.set(10, 15, 10);
     dir.castShadow = true;
@@ -63,55 +56,9 @@ export class Game {
     this.scene.add(floor);
   }
 
-  setupCustomControls() {
-    // Instructions overlay
-    const instructions = document.createElement('div');
-    instructions.id = 'instructions';
-    instructions.style.position = 'absolute';
-    instructions.style.top = '10px';
-    instructions.style.left = '50%';
-    instructions.style.transform = 'translateX(-50%)';
-    instructions.style.color = 'white';
-    instructions.style.background = 'rgba(0,0,0,0.5)';
-    instructions.style.padding = '10px';
-    instructions.style.borderRadius = '5px';
-    instructions.style.zIndex = '100';
-    instructions.innerHTML = 'Click to play: WASD move, Mouse look, Click grab, E drop';
-    document.body.appendChild(instructions);
-
-    // Pointer lock
-    const toggleLock = () => {
-      if (!this.isPointerLocked) {
-        document.body.requestPointerLock();
-      } else {
-        document.exitPointerLock();
-      }
-    };
-
-    document.addEventListener('click', toggleLock);
-    document.addEventListener('pointerlockchange', () => {
-      this.isPointerLocked = document.pointerLockElement === document.body;
-      instructions.style.display = this.isPointerLocked ? 'none' : 'block';
-      document.body.style.cursor = this.isPointerLocked ? 'none' : 'grab';
-    });
-
-    // Mouse look
-    document.addEventListener('mousemove', (e) => {
-      if (!this.isPointerLocked) return;
-      const movementX = e.movementX || 0;
-      const movementY = e.movementY || 0;
-      this.euler.setFromQuaternion(this.camera.quaternion);
-      this.euler.y -= movementX * 0.002;
-      this.euler.x -= movementY * 0.002;
-      this.euler.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.euler.x));
-      this.yawObject.rotation.y = this.euler.y;
-      this.pitchObject.rotation.x = this.euler.x;
-    });
-  }
-
   setupInput() {
     document.addEventListener('keydown', e => this.keys[e.code] = true);
-    document.addEventListener('keyup', e => this.keys[e.code] = false);
+    document.addEventListener('keyup',   e => this.keys[e.code] = false);
 
     const grab = () => this.player.tryGrab(this.interactables);
     document.addEventListener('pointerdown', e => {
@@ -120,6 +67,41 @@ export class Game {
 
     document.addEventListener('keydown', e => {
       if (e.code === 'KeyE' || e.code === 'Space') this.player.drop();
+    });
+
+    this.controls.addEventListener('lock', () => document.body.style.cursor = 'none');
+    this.controls.addEventListener('unlock', () => document.body.style.cursor = 'grab');
+    document.addEventListener('click', () => this.controls.lock());
+  }
+
+  // FULL MOBILE TOUCH CONTROLS
+  setupMobileTouch() {
+    let touchStartX = 0, touchStartY = 0;
+    let isTwoFinger = false;
+
+    document.addEventListener('touchstart', e => {
+      if (e.touches.length === 2) isTwoFinger = true;
+      if (e.touches.length === 1) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+      }
+    }, { passive: false });
+
+    document.addEventListener('touchmove', e => {
+      if (e.touches.length === 1 && !isTwoFinger) {
+        const deltaX = e.touches[0].clientX - touchStartX;
+        const deltaY = e.touches[0].clientY - touchStartY;
+        this.controls.yawObject.rotation.y -= deltaX * 0.002;
+        this.controls.pitchObject.rotation.x -= deltaY * 0.002;
+        this.controls.pitchObject.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, this.controls.pitchObject.rotation.x));
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        e.preventDefault();
+      }
+    }, { passive: false });
+
+    document.addEventListener('touchend', () => {
+      isTwoFinger = false;
     });
   }
 
@@ -135,13 +117,7 @@ export class Game {
     requestAnimationFrame(() => this.animate());
     const delta = this.clock.getDelta();
 
-    this.player.move.forward  = this.keys['KeyW'] || this.keys['ArrowUp'];
-    this.player.move.backward = this.keys['KeyS'] || this.keys['ArrowDown'];
-    this.player.move.left     = this.keys['KeyA'] || this.keys['ArrowLeft'];
-    this.player.move.right    = this.keys['KeyD'] || this.keys['ArrowRight'];
-
-    this.player.update(delta);
-
+    this.player.update(delta, this.keys, this.playerRoot);
     this.renderer.render(this.scene, this.camera);
   }
 
