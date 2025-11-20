@@ -1,118 +1,74 @@
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.166.1/build/three.module.js';
+import * as THREE from 'three';
 
 export class Player {
-  constructor(camera, scene, playerRoot) {
+  constructor(camera, scene) {
     this.camera = camera;
     this.scene = scene;
-    this.playerRoot = playerRoot;
-    this.move = { forward: false, backward: false, left: false, right: false };
     this.holding = null;
     this.canGrab = true;
-    this.grabDistance = 3.0; // Increased for easier grab
-    this.velocityY = 0;
-    this.isJumping = false;
-    this.time = 0;
 
-    // Metroid Prime-style arms: Relaxed, lowered, slight shoulder tilt (from Unity recreations)
-    this.hands = new THREE.Group();
-    this.camera.add(this.hands);
+    // Visible arms – Metroid Prime style, relaxed and lowered
+    this.arms = new THREE.Group();
+    this.camera.add(this.arms);
 
-    const armGeo = new THREE.CylinderGeometry(0.035, 0.05, 0.7, 8); // Slightly thinner/longer
-    const handGeo = new THREE.BoxGeometry(0.1, 0.08, 0.12); // Box for fist-like grip
-    const skinMat = new THREE.MeshStandardMaterial({ color: 0xfdbcb4 });
+    const armGeo = new THREE.CylinderGeometry(0.04, 0.06, 0.8, 8);
+    const handGeo = new THREE.BoxGeometry(0.12, 0.12, 0.15);
+    const mat = new THREE.MeshStandardMaterial({ color: 0xfdbcb4 });
 
-    // Left arm (mirrored)
-    this.leftArm = new THREE.Mesh(armGeo, skinMat);
-    this.leftHand = new THREE.Mesh(handGeo, skinMat);
-    this.leftArm.position.set(-0.3, -0.5, -0.35); // Lowered, outward (Metroid relaxed pose)
-    this.leftHand.position.set(-0.3, -0.85, -0.35);
-    this.leftArm.rotation.set(0.3, -0.2, 0.1); // Shoulder tilt out, elbow bend
-    this.leftHand.rotation.set(0, 0, 0);
+    this.leftArm = new THREE.Mesh(armGeo, mat);
+    this.leftHand = new THREE.Mesh(handGeo, mat);
+    this.rightArm = new THREE.Mesh(armGeo, mat);
+    this.rightHand = new THREE.Mesh(handGeo, mat);
 
-    // Right arm (primary for chisel)
-    this.rightArm = new THREE.Mesh(armGeo, skinMat);
-    this.rightHand = new THREE.Mesh(handGeo, skinMat);
-    this.rightArm.position.set(0.3, -0.5, -0.35);
-    this.rightHand.position.set(0.3, -0.85, -0.35);
-    this.rightArm.rotation.set(0.3, 0.2, -0.1); // Symmetric tilt
-    this.rightHand.rotation.set(0, 0, 0);
+    this.leftArm.position.set(-0.35, -0.6, -0.5);
+    this.leftHand.position.set(-0.35, -1.0, -0.5);
+    this.rightArm.position.set(0.35, -0.6, -0.5);
+    this.rightHand.position.set(0.35, -1.0, -0.5);
 
-    this.hands.add(this.leftArm, this.leftHand, this.rightArm, this.rightHand);
+    this.leftArm.rotation.x = 0.4;
+    this.rightArm.rotation.x = 0.4;
 
-    // Grab point (snaps tighter to palm)
+    this.arms.add(this.leftArm, this.leftHand, this.rightArm, this.rightHand);
+
+    // Grab point in right hand
     this.grabPoint = new THREE.Object3D();
-    this.grabPoint.position.set(0.3, -0.75, -0.4); // Closer to right hand
+    this.grabPoint.position.set(0.35, -0.9, -0.5);
     this.camera.add(this.grabPoint);
 
     this.raycaster = new THREE.Raycaster();
   }
 
-  update(delta, keys) {
-    this.time += delta;
-    this.move.forward = keys['KeyW'] || keys['ArrowUp'];
-    this.move.backward = keys['KeyS'] || keys['ArrowDown'];
-    this.move.left = keys['KeyA'] || keys['ArrowLeft'];
-    this.move.right = keys['KeyD'] || keys['ArrowRight'];
+  update(delta, keys, playerRoot, controls) {
+    // Movement
+    const move = new THREE.Vector3();
+    if (keys['KeyW']) move.z -= 1;
+    if (keys['KeyS']) move.z += 1;
+    if (keys['KeyA']) move.x -= 1;
+    if (keys['KeyD']) move.x += 1;
+    move.normalize().multiplyScalar(6 * delta);
+    playerRoot.translateX(move.x);
+    playerRoot.translateZ(move.z);
 
-    // Movement (fixed translation on root)
-    const direction = new THREE.Vector3();
-    direction.z = Number(this.move.forward) - Number(this.move.backward);
-    direction.x = Number(this.move.left) - Number(this.move.right);
-    direction.normalize();
-    if (direction.lengthSq() > 0) {
-      const speed = 6.0 * delta;
-      this.playerRoot.translateX(direction.x * speed);
-      this.playerRoot.translateZ(direction.z * speed);
-    }
-
-    // Jump (simple vertical impulse, clamp to ground)
-    if (this.isJumping) {
-      this.velocityY += 10 * delta; // Up impulse
-      this.playerRoot.position.y += this.velocityY * delta;
-      this.velocityY -= 20 * delta; // Gravity
-      if (this.playerRoot.position.y <= 1.6) {
-        this.playerRoot.position.y = 1.6;
-        this.isJumping = false;
-        this.velocityY = 0;
-      }
-    }
-
-    // Metroid idle bob/sway (subtle arm movement)
-    const bob = Math.sin(this.time * 2) * 0.02; // Breathing motion
-    this.hands.position.y = -0.1 + bob;
-    this.leftArm.rotation.z = Math.sin(this.time * 3) * 0.05; // Slight sway
-    this.rightArm.rotation.z = -Math.sin(this.time * 3) * 0.05;
+    // Arm idle bob
+    const time = performance.now() * 0.001;
+    this.arms.position.y = Math.sin(time * 2) * 0.02;
   }
 
-  jump() {
-    if (!this.isJumping) {
-      this.isJumping = true;
-      this.velocityY = -5; // Initial down for momentum
-    } else {
-      this.drop(); // Alt: Drop on space if jumping
-    }
-  }
-
-  tryGrab(interactables) {
+  tryGrab(objects) {
     if (!this.canGrab || this.holding) return;
     this.raycaster.setFromCamera(new THREE.Vector2(0, 0), this.camera);
-    const hits = this.raycaster.intersectObjects(interactables, true);
-    if (hits.length > 0 && hits[0].distance < this.grabDistance) {
+    const hits = this.raycaster.intersectObjects(objects, true);
+    if (hits.length > 0 && hits[0].distance < 3) {
       let obj = hits[0].object;
       while (obj && !obj.userData?.isInteractable) obj = obj.parent;
       if (obj?.userData?.isInteractable) {
         this.holding = obj;
         obj.oldParent = obj.parent;
         this.grabPoint.add(obj);
-        obj.position.set(0, 0, 0); // Snap to grab point
-        obj.rotation.set(0, Math.PI * 0.5, 0); // Grip rotation (chisel ready)
-        // Grip pose: Close hand on grab
-        this.rightHand.scale.set(0.9, 0.9, 0.9);
+        obj.position.set(0, 0, 0);
+        obj.rotation.set(0, Math.PI, 0);
         this.canGrab = false;
-        setTimeout(() => {
-          this.canGrab = true;
-          this.rightHand.scale.set(1, 1, 1); // Relax
-        }, 500);
+        setTimeout(() => this.canGrab = true, 400);
       }
     }
   }
@@ -120,7 +76,11 @@ export class Player {
   drop() {
     if (!this.holding) return;
     this.holding.oldParent.add(this.holding);
-    this.holding.position.copy(this.playerRoot.position).add(new THREE.Vector3(0, 0.5, -1)); // Drop in front
+    this.holding.position.set(
+      this.camera.position.x,
+      this.camera.position.y - 0.5,
+      this.camera.position.z - 1.5
+    );
     this.holding = null;
   }
 }
