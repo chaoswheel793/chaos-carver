@@ -1,16 +1,14 @@
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.168.0/build/three.module.js';
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.166.1/build/three.module.js';
 
 export function createChisel(scene) {
   const chisel = new THREE.Group();
 
-  // Handle
   const handle = new THREE.Mesh(
     new THREE.CylinderGeometry(0.04, 0.04, 0.4),
     new THREE.MeshStandardMaterial({ color: 0x8b4513 })
   );
   handle.position.y = 0.2;
 
-  // Blade
   const blade = new THREE.Mesh(
     new THREE.BoxGeometry(0.03, 0.01, 0.25),
     new THREE.MeshStandardMaterial({ color: 0xc0c0c0, metalness: 0.9, roughness: 0.2 })
@@ -19,7 +17,7 @@ export function createChisel(scene) {
 
   chisel.add(handle, blade);
   chisel.scale.set(1.5, 1.5, 1.5);
-  chisel.position.set(2, 0.8, -2); // on workbench
+  chisel.position.set(2, 0.8, -2);
   chisel.userData = { isInteractable: true, toolType: "chisel" };
 
   scene.add(chisel);
