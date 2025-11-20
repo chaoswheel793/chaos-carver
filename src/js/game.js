@@ -16,28 +16,28 @@ export class Game {
     this.keys = {};
     this.interactables = [];
 
-    // Player root
-    this.playerRoot = new THREE.Group();
-    this.scene.add(this.playerRoot);
-    this.playerRoot.position.y = 1.6;
-
-    // Pointer lock controls
+    // Controls (camera is child of controls → correct FPS look)
     this.controls = new PointerLockControls(this.camera, document.body);
-    this.playerRoot.add(this.controls.getObject());
 
-    // Player with visible arms
-    this.player = new Player(this.camera, this.scene);
+    // Player root for movement
+    this.playerRoot = new THREE.Group();
+    this.playerRoot.position.y = 1.6;
+    this.playerRoot.add(this.controls.getObject());  // ← THIS IS THE KEY FIX
+    this.scene.add(this.playerRoot);
+
+    this.player = new Player(this.camera);
     this.chisel = createChisel(this.scene);
     this.interactables.push(this.chisel);
 
     this.setupWorld();
     this.setupControls();
     this.fadeOutLoading();
+
     window.addEventListener('resize', () => this.onResize());
   }
 
   setupWorld() {
-    this.scene.background = new THREE.Color(0x87ceeb);
+    this.scene.background = new THREE.Color(0xb3e5fc);
     const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 2);
     this.scene.add(hemi);
     const light = new THREE.DirectionalLight(0xffffff, 1.5);
@@ -55,8 +55,7 @@ export class Game {
   }
 
   setupControls() {
-    const lock = () => this.controls.lock();
-    document.addEventListener('click', lock);
+    document.addEventListener('click', () => this.controls.lock());
 
     this.controls.addEventListener('lock', () => {
       document.getElementById('instructions').style.display = 'none';
@@ -87,15 +86,26 @@ export class Game {
     }, 500);
   }
 
-  init() {
-    this.animate();
-  }
+  init() { this.animate(); }
 
   animate() {
     requestAnimationFrame(() => this.animate());
     const delta = this.clock.getDelta();
 
-    this.player.update(delta, this.keys, this.playerRoot, this.controls);
+    // Movement using controls direction
+    const direction = new THREE.Vector3();
+    this.controls.getDirection(direction);
+
+    const forward = new THREE.Vector3();
+    forward.copy(direction).multiplyScalar((this.keys['KeyW'] || this.keys['ArrowUp'] ? 1 : 0) - (this.keys['KeyS'] || this.keys['ArrowDown'] ? 1 : 0));
+
+    const right = new THREE.Vector3();
+    right.crossVectors(direction, new THREE.Vector3(0, 1, 0)).multiplyScalar((this.keys['KeyD'] || this.keys['ArrowRight'] ? 1 : 0) - (this.keys['KeyA'] || this.keys['ArrowLeft'] ? 1 : 0));
+
+    const move = new THREE.Vector3().add(forward).add(right).normalize().multiplyScalar(6 * delta);
+    this.playerRoot.position.add(move);
+
+    this.player.update(delta);
     this.renderer.render(this.scene, this.camera);
   }
 
