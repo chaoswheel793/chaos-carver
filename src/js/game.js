@@ -6,8 +6,8 @@ import { createChisel } from './Tools.js';
 
 export class Game {
   constructor() {
-    this.scene   = new THREE.Scene();
-    this.camera  = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    this.scene    = new THREE.Scene();
+    this.camera   = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     this.renderer = new THREE.WebGLRenderer({
       canvas: document.getElementById('canvas'),
       antialias: true,
@@ -22,10 +22,8 @@ export class Game {
     this.keys = {};
     this.interactables = [];
 
-    // Player with hands
     this.player = new Player(this.camera, this.scene);
 
-    // FPS controls
     this.controls = new PointerLockControls(this.camera, document.body);
     this.scene.add(this.controls.getObject());
 
@@ -94,7 +92,7 @@ export class Game {
     this.player.move.left     = this.keys['KeyA'] || this.keys['ArrowLeft'];
     this.player.move.right    = this.keys['KeyD'] || this.keys['ArrowRight'];
 
-    this.player.update(delta, this.keys);
+    this.player.update(delta);
 
     this.renderer.render(this.scene, this.camera);
   }
