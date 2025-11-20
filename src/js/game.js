@@ -16,13 +16,11 @@ export class Game {
     this.keys = {};
     this.interactables = [];
 
-    // Controls (camera is child of controls → correct FPS look)
     this.controls = new PointerLockControls(this.camera, document.body);
 
-    // Player root for movement
     this.playerRoot = new THREE.Group();
     this.playerRoot.position.y = 1.6;
-    this.playerRoot.add(this.controls.getObject());  // ← THIS IS THE KEY FIX
+    this.playerRoot.add(this.controls.getObject());
     this.scene.add(this.playerRoot);
 
     this.player = new Player(this.camera);
@@ -55,12 +53,17 @@ export class Game {
   }
 
   setupControls() {
-    document.addEventListener('click', () => this.controls.lock());
+    // Only allow locking when not already locked
+    const tryLock = () => {
+      if (!this.controls.isLocked) this.controls.lock();
+    };
+    document.addEventListener('click', tryLock);
 
     this.controls.addEventListener('lock', () => {
       document.getElementById('instructions').style.display = 'none';
       document.body.style.cursor = 'none';
     });
+
     this.controls.addEventListener('unlock', () => {
       document.getElementById('instructions').style.display = 'block';
       document.body.style.cursor = 'default';
@@ -69,12 +72,18 @@ export class Game {
     document.addEventListener('keydown', e => this.keys[e.code] = true);
     document.addEventListener('keyup', e => this.keys[e.code] = false);
 
+    // Grab only on left click AND only when pointer is locked
     document.addEventListener('pointerdown', e => {
-      if (e.button === 0) this.player.tryGrab(this.interactables);
+      if (e.button === 0 && this.controls.isLocked) {
+        this.player.tryGrab(this.interactables);
+      }
     });
 
+    // Drop on E
     document.addEventListener('keydown', e => {
-      if (e.code === 'KeyE') this.player.drop();
+      if (e.code === 'KeyE' && this.controls.isLocked) {
+        this.player.drop();
+      }
     });
   }
 
@@ -92,18 +101,20 @@ export class Game {
     requestAnimationFrame(() => this.animate());
     const delta = this.clock.getDelta();
 
-    // Movement using controls direction
-    const direction = new THREE.Vector3();
-    this.controls.getDirection(direction);
+    if (this.controls.isLocked) {
+      const direction = new THREE.Vector3();
+      this.controls.getDirection(direction);
 
-    const forward = new THREE.Vector3();
-    forward.copy(direction).multiplyScalar((this.keys['KeyW'] || this.keys['ArrowUp'] ? 1 : 0) - (this.keys['KeyS'] || this.keys['ArrowDown'] ? 1 : 0));
+      const move = new THREE.Vector3();
+      if (this.keys['KeyW']) move.z -= 1;
+      if (this.keys['KeyS']) move.z += 1;
+      if (this.keys['KeyA']) move.x -= 1;
+      if (this.keys['KeyD']) move.x += 1;
 
-    const right = new THREE.Vector3();
-    right.crossVectors(direction, new THREE.Vector3(0, 1, 0)).multiplyScalar((this.keys['KeyD'] || this.keys['ArrowRight'] ? 1 : 0) - (this.keys['KeyA'] || this.keys['ArrowLeft'] ? 1 : 0));
-
-    const move = new THREE.Vector3().add(forward).add(right).normalize().multiplyScalar(6 * delta);
-    this.playerRoot.position.add(move);
+      move.normalize().multiplyScalar(6 * delta);
+      move.applyQuaternion(this.controls.getObject().quaternion);
+      this.playerRoot.position.add(move);
+    }
 
     this.player.update(delta);
     this.renderer.render(this.scene, this.camera);
