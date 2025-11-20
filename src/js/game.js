@@ -6,25 +6,27 @@ import { createChisel } from './Tools.js';
 
 export class Game {
   constructor() {
-    this.scene    = new THREE.Scene();
-    this.camera   = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    this.scene = new THREE.Scene();
+    this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     this.renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas'), antialias: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
     this.clock = new THREE.Clock();
     this.keys = {};
     this.interactables = [];
+    this.isJumping = false;
 
-    // Player root group
+    // Player root (fixed for movement)
     this.playerRoot = new THREE.Group();
     this.scene.add(this.playerRoot);
-    this.playerRoot.position.y = 1.6; // eye height
+    this.playerRoot.position.y = 1.6;
 
     // Controls
     this.controls = new PointerLockControls(this.camera, document.body);
-    this.playerRoot.add(this.controls.getObject()); // ← THIS WAS THE FIX
+    this.playerRoot.add(this.controls.getObject());
 
     this.player = new Player(this.camera, this.scene, this.playerRoot);
     this.chisel = createChisel(this.scene);
@@ -39,7 +41,7 @@ export class Game {
   }
 
   setupWorld() {
-    this.scene.background = new THREE.Color(0x2a2a2a);
+    this.scene.background = new THREE.Color(0x87ceeb); // Blue sky for better visibility
     const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 1.8);
     this.scene.add(hemi);
     const dir = new THREE.DirectionalLight(0xffffff, 1.4);
@@ -57,8 +59,14 @@ export class Game {
   }
 
   setupInput() {
-    document.addEventListener('keydown', e => this.keys[e.code] = true);
-    document.addEventListener('keyup',   e => this.keys[e.code] = false);
+    document.addEventListener('keydown', e => {
+      this.keys[e.code] = true;
+      if (e.code === 'Space') {
+        e.preventDefault();
+        this.player.jump();
+      }
+    });
+    document.addEventListener('keyup', e => this.keys[e.code] = false);
 
     const grab = () => this.player.tryGrab(this.interactables);
     document.addEventListener('pointerdown', e => {
@@ -66,7 +74,7 @@ export class Game {
     });
 
     document.addEventListener('keydown', e => {
-      if (e.code === 'KeyE' || e.code === 'Space') this.player.drop();
+      if (e.code === 'KeyE') this.player.drop();
     });
 
     this.controls.addEventListener('lock', () => document.body.style.cursor = 'none');
@@ -74,34 +82,46 @@ export class Game {
     document.addEventListener('click', () => this.controls.lock());
   }
 
-  // FULL MOBILE TOUCH CONTROLS
   setupMobileTouch() {
-    let touchStartX = 0, touchStartY = 0;
+    let touchStart = new THREE.Vector2();
     let isTwoFinger = false;
+    const joyRadius = 100; // Virtual joystick sensitivity
 
     document.addEventListener('touchstart', e => {
-      if (e.touches.length === 2) isTwoFinger = true;
-      if (e.touches.length === 1) {
-        touchStartX = e.touches[0].clientX;
-        touchStartY = e.touches[0].clientY;
+      if (e.touches.length >= 2) {
+        isTwoFinger = true;
+        e.preventDefault();
+      } else if (e.touches.length === 1) {
+        touchStart.set(e.touches[0].clientX, e.touches[0].clientY);
       }
     }, { passive: false });
 
     document.addEventListener('touchmove', e => {
-      if (e.touches.length === 1 && !isTwoFinger) {
-        const deltaX = e.touches[0].clientX - touchStartX;
-        const deltaY = e.touches[0].clientY - touchStartY;
-        this.controls.yawObject.rotation.y -= deltaX * 0.002;
-        this.controls.pitchObject.rotation.x -= deltaY * 0.002;
-        this.controls.pitchObject.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, this.controls.pitchObject.rotation.x));
-        touchStartX = e.touches[0].clientX;
-        touchStartY = e.touches[0].clientY;
-        e.preventDefault();
+      e.preventDefault();
+      if (isTwoFinger && e.touches.length >= 2) {
+        // Two-finger: Movement (virtual joystick from left side)
+        const avgX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        const avgY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        const deltaX = (avgX - window.innerWidth / 2) / joyRadius;
+        const deltaY = (avgY - window.innerHeight / 2) / joyRadius;
+        this.keys['KeyW'] = deltaY < -0.3;
+        this.keys['KeyS'] = deltaY > 0.3;
+        this.keys['KeyA'] = deltaX < -0.3;
+        this.keys['KeyD'] = deltaX > 0.3;
+      } else if (e.touches.length === 1) {
+        // One-finger: Look
+        const deltaX = e.touches[0].clientX - touchStart.x;
+        const deltaY = e.touches[0].clientY - touchStart.y;
+        this.controls.getObject().rotation.y -= deltaX * 0.005;
+        this.camera.rotation.x -= deltaY * 0.005;
+        this.camera.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.camera.rotation.x));
+        touchStart.set(e.touches[0].clientX, e.touches[0].clientY);
       }
     }, { passive: false });
 
     document.addEventListener('touchend', () => {
       isTwoFinger = false;
+      this.keys['KeyW'] = this.keys['KeyS'] = this.keys['KeyA'] = this.keys['KeyD'] = false;
     });
   }
 
@@ -117,7 +137,7 @@ export class Game {
     requestAnimationFrame(() => this.animate());
     const delta = this.clock.getDelta();
 
-    this.player.update(delta, this.keys, this.playerRoot);
+    this.player.update(delta, this.keys);
     this.renderer.render(this.scene, this.camera);
   }
 
